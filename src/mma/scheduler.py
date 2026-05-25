@@ -28,9 +28,7 @@ def run_pending(repo_root: Path, *, limit: int = 1) -> SchedulerResult:
     store.init()
     orchestrator = Orchestrator(config, store)
     results: list[RunResult] = []
-    for task in store.list_tasks():
-        if task.status != "pending":
-            continue
+    for task in store.ready_tasks():
         results.append(orchestrator.run_task(task.id))
         if len(results) >= limit:
             break

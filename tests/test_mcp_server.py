@@ -17,6 +17,7 @@ def test_mcp_lists_tools(tmp_path: Path):
         "run_task",
         "get_project_status",
         "rollback_task",
+        "submit_dag",
     }
 
 

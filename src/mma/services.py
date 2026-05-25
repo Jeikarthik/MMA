@@ -10,6 +10,7 @@ from mma.assets import answer_asset_request, create_asset_request
 from mma.capabilities import list_capabilities, seed_default_capabilities
 from mma.config import load_config
 from mma.db import Store, Task
+from mma.dag import create_dag, dag_tasks_from_json
 from mma.git_ops import get_diff, revert_commit
 from mma.github_api import build_pr_body, create_pull_request
 from mma.memory import index_repo, search_memory
@@ -62,6 +63,9 @@ class MmaService:
             task = self.store.get_task(task.id)
             assert task is not None
         return task_to_dict(task)
+
+    def create_dag(self, payload: list[dict[str, Any]]) -> dict[str, str]:
+        return create_dag(self.store, dag_tasks_from_json(payload))
 
     def list_tasks(self) -> list[dict[str, Any]]:
         return [task_to_dict(task) for task in self.store.list_tasks()]

@@ -35,6 +35,20 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         },
     },
     {
+        "name": "submit_dag",
+        "description": "Create multiple dependent MMA tasks from a DAG payload.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "tasks": {
+                    "type": "array",
+                    "items": {"type": "object"},
+                }
+            },
+            "required": ["tasks"],
+        },
+    },
+    {
         "name": "get_project_status",
         "description": "List MMA tasks and current state.",
         "inputSchema": {"type": "object", "properties": {}},
@@ -181,6 +195,7 @@ class JsonRpcServer:
                 risk=a.get("risk", "auto"),
                 validation_profile=a.get("validation_profile", "auto"),
             ),
+            "submit_dag": lambda a: self.service.create_dag(a["tasks"]),
             "get_project_status": lambda _a: self.service.list_tasks(),
             "get_task_detail": lambda a: self.service.get_task(a["task_id"]),
             "run_task": lambda a: self.service.run_task(a["task_id"], a.get("model")),

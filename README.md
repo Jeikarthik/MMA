@@ -78,6 +78,23 @@ mma-api --repo C:\Apps\MMA --port 8765
 
 Endpoints include `/health`, `/tasks`, `/capabilities`, `/resources`, `/run`, and `/memory/index`.
 
+## Telegram Bot
+
+Set a bot token and run:
+
+```powershell
+$env:TELEGRAM_BOT_TOKEN="..."
+mma-telegram --repo C:\Apps\MMA
+```
+
+Initial commands:
+
+- `/new_task describe the task`
+- `/status`
+- `/run TASK_ID`
+- `/capabilities`
+- `/resources`
+
 ## Safety
 
 MMA never commits with `git add .`. It stages only files reported by a task result and runs validation before commit.
@@ -98,13 +115,13 @@ Implemented:
 - Git branch, commit, diff, rollback helpers
 - MCP stdio server
 - Local HTTP API
+- Telegram polling bot
 - Lightweight repository memory
 - Optional GitHub PR creation
 - DPAPI-backed encrypted credential storage
 
 Still intentionally staged for later hardening:
 
-- Telegram bot
 - Full DAG planner/executor
 - Browser visual QA automation
 - Production-grade prompt templates and repair memory

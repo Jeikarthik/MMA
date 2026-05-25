@@ -20,6 +20,7 @@ dev = [
 mma = "mma.cli:main"
 mma-mcp = "mma.mcp_server:main"
 mma-api = "mma.http_api:main"
+mma-telegram = "mma.telegram_bot:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import json
 import sys
 
 from mma.assets import answer_asset_request
@@ -48,6 +49,9 @@ def main(argv: list[str] | None = None) -> int:
 
     pending = sub.add_parser("run-pending", help="run pending tasks sequentially")
     pending.add_argument("--limit", type=int, default=1)
+
+    dag = sub.add_parser("create-dag", help="create tasks from a DAG JSON file")
+    dag.add_argument("path")
 
     run = sub.add_parser("run", help="run a task")
     run.add_argument("task_id")
@@ -128,6 +132,15 @@ def main(argv: list[str] | None = None) -> int:
         for run_result in result.results:
             print(f"{run_result.task_id[:8]} {run_result.status}: {run_result.message}")
         return 0 if all(item.status == "complete" for item in result.results) else 1
+
+    if args.command == "create-dag":
+        from mma.services import MmaService
+
+        payload = json.loads(Path(args.path).read_text(encoding="utf-8"))
+        ids = MmaService(config.repo_root).create_dag(payload)
+        for key, task_id in ids.items():
+            print(f"{key}: {task_id}")
+        return 0
 
     if args.command == "run":
         result = Orchestrator(config, store).run_task(args.task_id, model_override=args.model)

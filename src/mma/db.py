@@ -34,6 +34,14 @@ CREATE TABLE IF NOT EXISTS tasks (
     updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS task_deps (
+    task_id TEXT NOT NULL,
+    depends_on TEXT NOT NULL,
+    PRIMARY KEY (task_id, depends_on),
+    FOREIGN KEY(task_id) REFERENCES tasks(id),
+    FOREIGN KEY(depends_on) REFERENCES tasks(id)
+);
+
 CREATE TABLE IF NOT EXISTS events (
     id TEXT PRIMARY KEY,
     task_id TEXT,
@@ -170,6 +178,33 @@ class Store:
     def list_tasks(self) -> list[Task]:
         with self.connect() as conn:
             rows = conn.execute("SELECT * FROM tasks ORDER BY created_at").fetchall()
+        return [self._row_to_task(row) for row in rows]
+
+    def add_dependency(self, task_id: str, depends_on: str) -> None:
+        with self.connect() as conn:
+            conn.execute(
+                "INSERT OR IGNORE INTO task_deps (task_id, depends_on) VALUES (?, ?)",
+                (task_id, depends_on),
+            )
+            self._insert_event(conn, task_id, "dependency_added", {"depends_on": depends_on})
+
+    def ready_tasks(self) -> list[Task]:
+        with self.connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT t.*
+                FROM tasks t
+                WHERE t.status = 'pending'
+                  AND NOT EXISTS (
+                    SELECT 1
+                    FROM task_deps d
+                    JOIN tasks dep ON dep.id = d.depends_on
+                    WHERE d.task_id = t.id
+                      AND dep.status != 'complete'
+                  )
+                ORDER BY t.created_at
+                """
+            ).fetchall()
         return [self._row_to_task(row) for row in rows]
 
     def transition(self, task_id: str, status: str, payload: dict[str, Any] | None = None) -> None:
