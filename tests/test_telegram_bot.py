@@ -20,3 +20,10 @@ def test_telegram_new_task_and_status(tmp_path):
 def test_telegram_unknown_command(tmp_path):
     response = handle_command(MmaService(tmp_path), "/wat")
     assert "Unknown command" in response
+
+
+def test_telegram_retry_command(tmp_path):
+    service = MmaService(tmp_path)
+    task = service.create_task(description="Update docs")
+    response = handle_command(service, f"/retry {task['id']}")
+    assert response == "pending"

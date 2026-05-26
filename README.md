@@ -68,6 +68,12 @@ Current MCP tools:
 - `search_repo_memory`
 - `create_pull_request`
 
+Ready-to-use config examples:
+
+- Cursor: `mcp.cursor.json`
+- VS Code: `.vscode/mcp.json`
+- Detailed setup: `docs/MCP_SETUP.md`
+
 ## Local HTTP API
 
 For lightweight local integrations:

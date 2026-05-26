@@ -35,6 +35,9 @@ class TelegramBot:
                 chat_id = chat.get("id")
                 if chat_id is None or not text:
                     continue
+                if self.service.config.telegram_allowed_chat_ids and int(chat_id) not in self.service.config.telegram_allowed_chat_ids:
+                    self.send_message(chat_id, "MMA access denied for this chat.")
+                    continue
                 self.send_message(chat_id, handle_command(self.service, text))
             time.sleep(interval_seconds)
 
@@ -87,6 +90,26 @@ def handle_command(service: MmaService, text: str) -> str:
             return "Usage: /run TASK_ID"
         result = service.run_task(rest.strip())
         return f"{result['status']}: {result['message']}"
+    if command == "/retry":
+        if not rest.strip():
+            return "Usage: /retry TASK_ID"
+        return service.retry_task(rest.strip())["status"]
+    if command == "/rollback":
+        if not rest.strip():
+            return "Usage: /rollback TASK_ID"
+        return service.rollback_task(rest.strip())["status"]
+    if command == "/pause":
+        if not rest.strip():
+            return "Usage: /pause TASK_ID"
+        return service.pause_task(rest.strip())["status"]
+    if command == "/answer_asset":
+        request_id, sep, answer = rest.partition(" ")
+        if not sep:
+            return "Usage: /answer_asset REQUEST_ID answer text"
+        result = service.answer_asset(request_id, answer)
+        return result["status"]
+    if command == "/provider_health":
+        return json.dumps(service.provider_health(), indent=2)
     if command == "/capabilities":
         capabilities = service.capabilities()
         return "\n".join(

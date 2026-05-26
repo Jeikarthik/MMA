@@ -6,6 +6,8 @@ import re
 import subprocess
 from pathlib import Path
 
+from mma.security import run_staged_secret_scan
+
 
 class GitError(RuntimeError):
     """Raised for git workflow failures."""
@@ -37,6 +39,10 @@ def commit_files(repo_root: Path, files: list[str], message: str) -> str:
     add = subprocess.run(["git", "add", "--", *files], cwd=repo_root, capture_output=True, text=True)
     if add.returncode != 0:
         raise GitError(add.stderr.strip() or add.stdout.strip())
+    try:
+        run_staged_secret_scan(repo_root)
+    except RuntimeError as exc:
+        raise GitError(str(exc)) from exc
     commit = subprocess.run(["git", "commit", "-m", message], cwd=repo_root, capture_output=True, text=True)
     if commit.returncode != 0:
         raise GitError(commit.stderr.strip() or commit.stdout.strip())

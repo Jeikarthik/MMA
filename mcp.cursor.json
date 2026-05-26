@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "mma": {
+      "command": "python",
+      "args": ["-m", "mma.mcp_server", "--repo", "C:\\Apps\\MMA"],
+      "env": {
+        "PYTHONPATH": "C:\\Apps\\MMA\\src"
+      }
+    }
+  }
+}

@@ -122,8 +122,26 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         "inputSchema": {"type": "object", "properties": {}},
     },
     {
+        "name": "invoke_capability",
+        "description": "Invoke a registered skill/plugin capability.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "arguments": {"type": "object"},
+                "approved": {"type": "boolean"},
+            },
+            "required": ["name"],
+        },
+    },
+    {
         "name": "get_vram_status",
         "description": "Return local resource safety status.",
+        "inputSchema": {"type": "object", "properties": {}},
+    },
+    {
+        "name": "get_provider_health",
+        "description": "Return Ollama/NVIDIA/optional Claude provider health.",
         "inputSchema": {"type": "object", "properties": {}},
     },
     {
@@ -205,7 +223,11 @@ class JsonRpcServer:
             "get_diff": lambda a: self.service.get_diff(a["task_id"]),
             "answer_asset_request": lambda a: self.service.answer_asset(a["request_id"], a["answer"]),
             "list_capabilities": lambda _a: self.service.capabilities(),
+            "invoke_capability": lambda a: self.service.invoke_capability(
+                a["name"], a.get("arguments", {}), approved=bool(a.get("approved", False))
+            ),
             "get_vram_status": lambda _a: self.service.resource_status(),
+            "get_provider_health": lambda _a: self.service.provider_health(),
             "index_repo_memory": lambda _a: self.service.index_memory(),
             "search_repo_memory": lambda a: self.service.search_memory(a["query"], a.get("limit", 5)),
             "create_pull_request": lambda a: self.service.create_pr(

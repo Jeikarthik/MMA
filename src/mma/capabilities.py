@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+from pathlib import Path
 from uuid import uuid4
 
+from mma.browser_qa import run_browser_qa
 from mma.db import Store, utc_now
+from mma.memory import index_repo, search_memory
 
 
 MUTATING_PERMISSIONS = frozenset({"write", "network", "secret", "install", "external_tool"})
@@ -76,3 +79,38 @@ def seed_default_capabilities(store: Store) -> None:
     register_capability(store, name="repo-inspect", adapter_type="native", permissions=set())
     register_capability(store, name="browser-qa", adapter_type="browser", permissions={"external_tool"})
     register_capability(store, name="github-pr", adapter_type="github", permissions={"network"})
+
+
+def invoke_capability(
+    store: Store,
+    repo_root: Path,
+    *,
+    name: str,
+    arguments: dict,
+    approved: bool = False,
+) -> dict:
+    capabilities = {capability.name: capability for capability in list_capabilities(store)}
+    if name not in capabilities:
+        raise ValueError(f"capability not found: {name}")
+    capability = capabilities[name]
+    if not capability.enabled:
+        raise ValueError(f"capability is disabled: {name}")
+    if capability.requires_approval and not approved:
+        return {"status": "awaiting_approval", "capability": name}
+    if name == "repo-inspect":
+        query = arguments.get("query")
+        if query:
+            return {
+                "status": "complete",
+                "results": [
+                    {"path": item.path, "summary": item.summary}
+                    for item in search_memory(store, str(query), limit=int(arguments.get("limit", 5)))
+                ],
+            }
+        return {"status": "complete", "indexed": len(index_repo(store, repo_root))}
+    if name == "browser-qa":
+        return {
+            "status": "complete",
+            "output": run_browser_qa(repo_root, arguments.get("target_url")),
+        }
+    raise ValueError(f"capability adapter not implemented: {name}")

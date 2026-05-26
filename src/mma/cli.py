@@ -41,6 +41,9 @@ def main(argv: list[str] | None = None) -> int:
     answer_asset.add_argument("answer")
 
     sub.add_parser("capabilities", help="list registered skills/plugins")
+    sub.add_parser("provider-health", help="show provider health")
+    watchdog = sub.add_parser("watchdog", help="run one watchdog check")
+    watchdog.add_argument("--stale-minutes", type=int, default=30)
 
     sub.add_parser("index", help="index repository memory")
 
@@ -115,6 +118,20 @@ def main(argv: list[str] | None = None) -> int:
         for capability in list_capabilities(store):
             approval = "approval-required" if capability.requires_approval else "read-only"
             print(f"{capability.name:16} {capability.adapter_type:10} {approval}")
+        return 0
+
+    if args.command == "provider-health":
+        from mma.services import MmaService
+
+        print(json.dumps(MmaService(config.repo_root).provider_health(), indent=2))
+        return 0
+
+    if args.command == "watchdog":
+        from dataclasses import asdict
+
+        from mma.watchdog import run_watchdog
+
+        print(json.dumps(asdict(run_watchdog(config.repo_root, stale_minutes=args.stale_minutes)), indent=2))
         return 0
 
     if args.command == "index":

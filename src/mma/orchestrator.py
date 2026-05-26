@@ -4,10 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from mma.context import assemble_context
 from mma.config import AppConfig
 from mma.db import Store, Task
 from mma.assets import create_asset_request
+from mma.failures import classify_failure
 from mma.git_ops import changed_files_from_patch, commit_files, ensure_branch
+from mma.locks import acquire_file_locks, release_file_locks
 from mma.patches import PatchError, apply_patch, extract_unified_diff
 from mma.providers import ProviderError, generate
 from mma.resources import check_resources
@@ -45,7 +48,7 @@ class Orchestrator:
         self.store.update_task(task.id, branch=branch)
         self.store.transition(task.id, "executing", {"provider": route.provider, "model": route.model})
 
-        prompt = _build_prompt(task)
+        prompt = assemble_context(self.store, task).prompt
         try:
             ensure_branch(self.config.repo_root, branch)
             result = generate(route, self.config, prompt)
@@ -65,20 +68,19 @@ class Orchestrator:
                     f"Task needs context before continuing: {prompt} ({request_id})",
                 )
             patch_text = extract_unified_diff(result.text)
+            files = changed_files_from_patch(patch_text)
+            acquire_file_locks(self.store, task.id, files)
             apply_patch(self.config.repo_root, patch_text, check=True)
             apply_patch(self.config.repo_root, patch_text, check=False)
         except (ProviderError, PatchError, RuntimeError) as exc:
-            self.store.update_task(task.id, retry_count=task.retry_count + 1, error_log=str(exc))
-            self.store.transition(task.id, "failed", {"error": str(exc)})
+            self._record_failure(task, str(exc))
             return RunResult(task.id, "failed", str(exc))
 
-        files = changed_files_from_patch(patch_text)
         self.store.update_task(task.id, files_modified=files)
         self.store.transition(task.id, "validating")
         validation = run_validation(self.config.repo_root, task.validation_profile)
         if not validation.passed:
-            self.store.update_task(task.id, retry_count=task.retry_count + 1, error_log=validation.output)
-            self.store.transition(task.id, "failed", {"validation": validation.output})
+            self._record_failure(task, validation.output)
             return RunResult(task.id, "failed", validation.output)
 
         try:
@@ -94,26 +96,29 @@ class Orchestrator:
             result_summary=f"Committed {len(files)} file(s).",
         )
         self.store.transition(task.id, "complete")
+        release_file_locks(self.store, task.id)
         return RunResult(task.id, "complete", f"Committed {len(files)} file(s) on {branch}.")
 
-
-def _build_prompt(task: Task) -> str:
-    return f"""Create a unified git diff for this task.
-
-Rules:
-- Return only a unified diff in a diff code block or raw diff.
-- Do not include explanations.
-- Keep the change scoped to the task.
-- If required context or assets are missing, return exactly:
-  NEEDS_CONTEXT: <specific missing information>
-
-Task type: {task.type}
-Risk: {task.risk}
-Validation profile: {task.validation_profile}
-Title: {task.title}
-Description:
-{task.description}
-"""
+    def _record_failure(self, task: Task, output: str) -> None:
+        retry_count = task.retry_count + 1
+        diagnosis = classify_failure(output, retry_count=retry_count)
+        status = "escalated" if diagnosis.escalate_to_nvidia and retry_count >= 2 else "failed"
+        self.store.update_task(
+            task.id,
+            retry_count=retry_count,
+            error_log=output,
+            failure_digest=diagnosis.digest,
+        )
+        self.store.transition(
+            task.id,
+            status,
+            {
+                "failure_class": diagnosis.failure_class.value,
+                "retryable": diagnosis.retryable,
+                "escalate_to_nvidia": diagnosis.escalate_to_nvidia,
+            },
+        )
+        release_file_locks(self.store, task.id)
 
 
 def _slug(value: str) -> str:

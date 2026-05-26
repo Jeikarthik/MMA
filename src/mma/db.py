@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     branch TEXT,
     commit_sha TEXT,
     files_modified TEXT NOT NULL DEFAULT '[]',
+    failure_digest TEXT,
     result_summary TEXT,
     error_log TEXT,
     created_at TEXT NOT NULL,
@@ -90,10 +91,12 @@ CREATE TABLE IF NOT EXISTS repo_memory (
 );
 
 CREATE TABLE IF NOT EXISTS file_locks (
-    path TEXT PRIMARY KEY,
-    task_id TEXT NOT NULL,
+    file_path TEXT NOT NULL,
+    project_id TEXT NOT NULL DEFAULT 'default',
+    locked_by_task TEXT NOT NULL,
     locked_at TEXT NOT NULL,
-    FOREIGN KEY(task_id) REFERENCES tasks(id)
+    PRIMARY KEY (file_path, project_id),
+    FOREIGN KEY(locked_by_task) REFERENCES tasks(id)
 );
 
 CREATE TABLE IF NOT EXISTS credentials (
@@ -126,6 +129,7 @@ class Task:
     result_summary: str | None
     error_log: str | None
     commit_sha: str | None = None
+    failure_digest: str | None = None
 
 
 class Store:
@@ -143,6 +147,7 @@ class Store:
     def init(self) -> None:
         with self.connect() as conn:
             conn.executescript(SCHEMA)
+            self._migrate(conn)
 
     def create_task(
         self,
@@ -265,6 +270,33 @@ class Store:
         )
 
     @staticmethod
+    def _migrate(conn: sqlite3.Connection) -> None:
+        columns = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(tasks)").fetchall()
+        }
+        if "failure_digest" not in columns:
+            conn.execute("ALTER TABLE tasks ADD COLUMN failure_digest TEXT")
+        lock_columns = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(file_locks)").fetchall()
+        }
+        if lock_columns and "locked_by_task" not in lock_columns:
+            conn.execute("DROP TABLE file_locks")
+            conn.execute(
+                """
+                CREATE TABLE file_locks (
+                    file_path TEXT NOT NULL,
+                    project_id TEXT NOT NULL DEFAULT 'default',
+                    locked_by_task TEXT NOT NULL,
+                    locked_at TEXT NOT NULL,
+                    PRIMARY KEY (file_path, project_id),
+                    FOREIGN KEY(locked_by_task) REFERENCES tasks(id)
+                )
+                """
+            )
+
+    @staticmethod
     def _row_to_task(row: sqlite3.Row) -> Task:
         return Task(
             id=row["id"],
@@ -282,4 +314,5 @@ class Store:
             files_modified=json.loads(row["files_modified"]),
             result_summary=row["result_summary"],
             error_log=row["error_log"],
+            failure_digest=row["failure_digest"],
         )

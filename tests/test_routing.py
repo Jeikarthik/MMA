@@ -20,6 +20,7 @@ def make_task(**overrides):
         files_modified=[],
         result_summary=None,
         error_log=None,
+        failure_digest=None,
     )
     base.update(overrides)
     return Task(**base)

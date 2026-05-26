@@ -16,13 +16,10 @@ class ValidationResult:
 
 def run_validation(repo_root: Path, profile: str) -> ValidationResult:
     if profile == "python":
-        return _run_commands(
-            repo_root,
-            [
-                ["python", "-m", "compileall", "-q", "."],
-                ["python", "-m", "pytest"],
-            ],
-        )
+        commands = [["python", "-m", "compileall", "-q", "."]]
+        commands.extend(_optional_python_checks())
+        commands.append(["python", "-m", "pytest"])
+        return _run_commands(repo_root, commands)
     if profile == "frontend":
         commands: list[list[str]] = []
         if (repo_root / "package.json").exists():
@@ -62,3 +59,23 @@ def _command_available(command: str) -> bool:
     if command in {"python", "git"}:
         return True
     return shutil.which(command) is not None
+
+
+def _optional_python_checks() -> list[list[str]]:
+    checks: list[list[str]] = []
+    if _module_available("ruff"):
+        checks.append(["python", "-m", "ruff", "check", "."])
+    if _module_available("mypy"):
+        checks.append(["python", "-m", "mypy", "src"])
+    if _module_available("bandit"):
+        checks.append(["python", "-m", "bandit", "-q", "-r", "src"])
+    return checks
+
+
+def _module_available(module: str) -> bool:
+    result = subprocess.run(
+        ["python", "-c", f"import {module}"],
+        capture_output=True,
+        text=True,
+    )
+    return result.returncode == 0

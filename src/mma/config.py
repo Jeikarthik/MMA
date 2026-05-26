@@ -66,6 +66,7 @@ class AppConfig:
     nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
     nvidia_api_key: str | None = None
     claude_api_key: str | None = None
+    telegram_allowed_chat_ids: frozenset[int] = frozenset()
     safety: SafetyCaps = field(default_factory=SafetyCaps)
     local_models: LocalModels = field(default_factory=LocalModels)
     nvidia_models: NvidiaModels = field(default_factory=NvidiaModels)
@@ -84,4 +85,15 @@ def load_config(repo_root: Path | None = None) -> AppConfig:
         nvidia_base_url=os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1"),
         nvidia_api_key=os.getenv("NVIDIA_API_KEY"),
         claude_api_key=os.getenv("ANTHROPIC_API_KEY"),
+        telegram_allowed_chat_ids=_parse_chat_ids(os.getenv("TELEGRAM_ALLOWED_CHAT_IDS", "")),
     )
+
+
+def _parse_chat_ids(value: str) -> frozenset[int]:
+    ids: set[int] = set()
+    for item in value.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        ids.add(int(item))
+    return frozenset(ids)

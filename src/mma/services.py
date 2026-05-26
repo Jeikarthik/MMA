@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from mma.assets import answer_asset_request, create_asset_request
-from mma.capabilities import list_capabilities, seed_default_capabilities
+from mma.capabilities import invoke_capability, list_capabilities, seed_default_capabilities
 from mma.config import load_config
 from mma.db import Store, Task
 from mma.dag import create_dag, dag_tasks_from_json
@@ -15,6 +15,7 @@ from mma.git_ops import get_diff, revert_commit
 from mma.github_api import build_pr_body, create_pull_request
 from mma.memory import index_repo, search_memory
 from mma.orchestrator import Orchestrator
+from mma.providers import provider_health
 from mma.resources import check_resources
 from mma.scout import scout_task
 
@@ -141,6 +142,17 @@ class MmaService:
             for capability in list_capabilities(self.store)
         ]
 
+    def invoke_capability(
+        self, name: str, arguments: dict[str, Any] | None = None, *, approved: bool = False
+    ) -> dict[str, Any]:
+        return invoke_capability(
+            self.store,
+            self.config.repo_root,
+            name=name,
+            arguments=arguments or {},
+            approved=approved,
+        )
+
     def resource_status(self) -> dict[str, Any]:
         status = check_resources(self.config.safety)
         return {
@@ -148,6 +160,9 @@ class MmaService:
             "hard_stop": status.hard_stop,
             "messages": status.messages,
         }
+
+    def provider_health(self) -> dict[str, object]:
+        return provider_health(self.config)
 
     def index_memory(self) -> dict[str, Any]:
         entries = index_repo(self.store, self.config.repo_root)

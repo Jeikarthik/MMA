@@ -33,6 +33,9 @@ def choose_route(task: Task, config: AppConfig, *, local_safe: bool, override: s
     if is_critical(task):
         return Route("nvidia", config.nvidia_models.reasoning, "critical task routes directly to NVIDIA")
 
+    if task.status == "escalated":
+        return Route("nvidia", config.nvidia_models.coding, "task was escalated after failure")
+
     if not local_safe:
         return Route("nvidia", config.nvidia_models.coding, "local resource health unsafe")
 
