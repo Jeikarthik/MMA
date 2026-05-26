@@ -44,6 +44,8 @@ Recommended local roles from the PRD:
 
 Model names are configured in `src\mma\config.py`. If your local Ollama model names differ, update the defaults there or add environment-driven config later.
 
+Use the strong Modelfile prompts in `docs/OLLAMA_MODELFILES.md` when importing GGUF models into Ollama.
+
 ## 3. Configure NVIDIA API
 
 Set your NVIDIA key for the current PowerShell session:

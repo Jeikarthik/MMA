@@ -1,6 +1,7 @@
 .env
 .env.*
 !.env.example
+.venv/
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -14,6 +15,7 @@ dist/
 build/
 *.egg-info/
 node_modules/
+ollama-models/
 tmp_render/
 tmp_render_manual/
 sentinel_prd_render/

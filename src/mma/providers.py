@@ -8,6 +8,7 @@ import time
 from urllib import error, request
 
 from mma.config import AppConfig
+from mma.prompts import ENGINEERING_SYSTEM_PROMPT
 from mma.routing import Route
 
 
@@ -73,7 +74,7 @@ def _openai_compatible_generate(
         "messages": [
             {
                 "role": "system",
-                "content": "You are an engineering agent. Return only the requested structured output.",
+                "content": ENGINEERING_SYSTEM_PROMPT,
             },
             {"role": "user", "content": prompt},
         ],

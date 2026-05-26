@@ -75,6 +75,7 @@ Ready-to-use config examples:
 - Detailed setup: `docs/MCP_SETUP.md`
 - Full configuration guide: `docs/CONFIGURATION_GUIDE.md`
 - Onboarding walkthrough: `docs/ONBOARDING_WALKTHROUGH.md`
+- Strong Ollama Modelfiles: `docs/OLLAMA_MODELFILES.md`
 
 ## One-Command Startup
 
