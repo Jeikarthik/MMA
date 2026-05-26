@@ -46,3 +46,22 @@ mma watchdog --stale-minutes 30
 ```
 
 Schedule this command with Windows Task Scheduler if you want periodic checks.
+
+## One-Command Startup
+
+```powershell
+cd C:\Apps\MMA
+.\scripts\Start-MMA.ps1
+```
+
+Status:
+
+```powershell
+.\scripts\Status-MMA.ps1
+```
+
+Stop:
+
+```powershell
+.\scripts\Stop-MMA.ps1
+```

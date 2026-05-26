@@ -74,6 +74,29 @@ Ready-to-use config examples:
 - VS Code: `.vscode/mcp.json`
 - Detailed setup: `docs/MCP_SETUP.md`
 - Full configuration guide: `docs/CONFIGURATION_GUIDE.md`
+- Onboarding walkthrough: `docs/ONBOARDING_WALKTHROUGH.md`
+
+## One-Command Startup
+
+Start the long-running local services:
+
+```powershell
+.\scripts\Start-MMA.ps1
+```
+
+Check status:
+
+```powershell
+.\scripts\Status-MMA.ps1
+```
+
+Stop services:
+
+```powershell
+.\scripts\Stop-MMA.ps1
+```
+
+The startup script launches the local HTTP API, Telegram when configured, and a watchdog loop. Cursor/VS Code should start the MCP stdio server from the provided MCP config; the startup script runs an MCP smoke test to verify it is healthy.
 
 ## Local HTTP API
 
