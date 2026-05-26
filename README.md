@@ -73,6 +73,7 @@ Ready-to-use config examples:
 - Cursor: `mcp.cursor.json`
 - VS Code: `.vscode/mcp.json`
 - Detailed setup: `docs/MCP_SETUP.md`
+- Full configuration guide: `docs/CONFIGURATION_GUIDE.md`
 
 ## Local HTTP API
 
